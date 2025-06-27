@@ -6,7 +6,7 @@
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,       // ✅ SKIP third-party type errors
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   }
 }
