@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import  ChainlinkDatastreamsConsumer from '@hackbg/chainlink-datastreams-consumer'; // fixed import
+import ChainlinkDatastreamsConsumer from '@hackbg/chainlink-datastreams-consumer';
 
 dotenv.config();
 
@@ -45,6 +45,23 @@ async function getReport() {
   });
 }
 
+// Retry utility function
+async function retry<T>(fn: () => Promise<T>, retries = 5, delayMs = 0): Promise<T> {
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      console.warn(`Attempt ${attempt} failed. Retrying...`);
+      if (delayMs > 0) {
+        await new Promise((res) => setTimeout(res, delayMs));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // API route to return the report
 app.post('/api/report', async (req: Request, res: Response) => {
   const { secret } = req.body;
@@ -54,12 +71,12 @@ app.post('/api/report', async (req: Request, res: Response) => {
   }
 
   try {
-    const report = await getReport();
+    const report = await retry(getReport, 5, 100); // Retry 5 times with 100ms delay
     const safeReport = convertBigIntsToStrings(report);
     res.json({ report: safeReport.benchmarkPrice });
   } catch (err) {
-    console.error('Error fetching report:', err);
-    res.status(500).json({ error: 'Failed to fetch report' });
+    console.error('Error fetching report after retries:', err);
+    res.status(500).json({ error: 'Failed to fetch report after retries' });
   }
 });
 
