@@ -46,7 +46,7 @@ async function getReport() {
 }
 
 // Retry utility function
-async function retry<T>(fn: () => Promise<T>, retries = 5, delayMs = 0): Promise<T> {
+async function retry<T>(fn: () => Promise<T>, retries = 10, delayMs = 0): Promise<T> {
   let lastError;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -71,13 +71,17 @@ app.post('/api/report', async (req: Request, res: Response) => {
   }
 
   try {
-    const report = await retry(getReport, 5, 100); // Retry 5 times with 100ms delay
+    const report = await retry(getReport, 10, 100); // Retry 5 times with 100ms delay
     const safeReport = convertBigIntsToStrings(report);
     res.json({ report: safeReport.benchmarkPrice });
   } catch (err) {
     console.error('Error fetching report after retries:', err);
     res.status(500).json({ error: 'Failed to fetch report after retries' });
   }
+});
+
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ data: 'This is custom Chainlink DataStreams API' });
 });
 
 // Start the server
